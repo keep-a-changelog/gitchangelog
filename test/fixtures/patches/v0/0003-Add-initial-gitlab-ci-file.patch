@@ -1,0 +1,42 @@
+From 608316385e918673d41598c5ee608166b80c169d Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 21 Nov 2018 12:47:40 +0100
+Subject: [PATCH 3/5] Add initial gitlab-ci file
+
+By having an initial gitlab-ci file, we prevent autodevops from starting
+by default (and failing) and sets the first step towards setting up a
+CI.
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ .gitlab-ci.yml | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+ create mode 100644 .gitlab-ci.yml
+
+diff --git a/.gitlab-ci.yml b/.gitlab-ci.yml
+new file mode 100644
+index 0000000..98e0e85
+--- /dev/null
++++ b/.gitlab-ci.yml
+@@ -0,0 +1,18 @@
++# SPDX-License-Identifier: AGPL-3.0-or-later
++#
++# Copyright (C) 2018 Olliver Schinagl <oliver@schinagl.nl>
++
++stages:
++  - test
++
++# Common requisites
++# ===========================================================================
++.parameters_common: &common_parameters
++  tags:
++    - linux
++
++test:
++  <<: *common_parameters
++  stage: test
++  script:
++    - echo "Hello World!"
+-- 
+2.20.1
+

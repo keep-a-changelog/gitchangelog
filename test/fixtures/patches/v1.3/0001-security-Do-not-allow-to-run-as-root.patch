@@ -1,0 +1,31 @@
+From 2fd66d53d1e0c5d518592f05ec2731aac8098bba Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Sat, 23 Nov 2019 14:45:53 +0100
+Subject: [PATCH] security: Do not allow to run as root
+
+Running as root is insecure, lets not allow this.
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ hello_world.sh | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index 2b8aaa3..880b5d1 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -42,6 +42,11 @@ main()
+ 		esac
+ 	done
+ 
++	if [ "$(id -u)" -eq 0 ]; then
++		echo "Do not run as root"
++		exit 1
++	fi
++
+ 	world
+ 
+ 	cleanup
+-- 
+2.20.1
+

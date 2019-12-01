@@ -1,0 +1,40 @@
+From 75f276c5f9451e5e7f23151203b6c00b54dd4d97 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 20 Nov 2019 22:23:15 +0100
+Subject: [PATCH] Add primary functionality
+
+Lets output a friendly message
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ hello_world.sh | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index a8c36cc..012e963 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -6,6 +6,11 @@ usage()
+ 	echo "   -h  Uage information"
+ }
+ 
++world()
++{
++	echo "Hello, World!"
++}
++
+ main()
+ {
+ 	while getopts ":h" _options; do
+@@ -24,6 +29,8 @@ main()
+ 			;;
+ 		esac
+ 	done
++
++	world
+ }
+ 
+ main "${@}"
+-- 
+2.20.1
+

@@ -1,0 +1,45 @@
+From fe031a1c46e28032dd54abb9f0e0012092308fe2 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 20 Nov 2019 22:25:35 +0100
+Subject: [PATCH] Also exit in a friendly way
+
+Let the world know, it is over.
+---
+ hello_world.sh | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index 012e963..8949afc 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -6,6 +6,18 @@ usage()
+ 	echo "   -h  Uage information"
+ }
+ 
++init()
++{
++	trap cleanup EXIT
++}
++
++cleanup()
++{
++	echo "God bye."
++
++	trap EXIT
++}
++
+ world()
+ {
+ 	echo "Hello, World!"
+@@ -31,6 +43,8 @@ main()
+ 	done
+ 
+ 	world
++
++	cleanup
+ }
+ 
+ main "${@}"
+-- 
+2.20.1
+

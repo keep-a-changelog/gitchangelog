@@ -1,0 +1,28 @@
+From f3db90e62e22ef79f8dcb64a02b6782a260a645d Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 20 Nov 2019 22:26:32 +0100
+Subject: [PATCH] Fix typo
+
+Lets be friendly, not devine.
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ hello_world.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index 8949afc..9bfc77c 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -13,7 +13,7 @@ init()
+ 
+ cleanup()
+ {
+-	echo "God bye."
++	echo "Good bye."
+ 
+ 	trap EXIT
+ }
+-- 
+2.20.1
+

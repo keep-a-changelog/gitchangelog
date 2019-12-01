@@ -1,0 +1,26 @@
+From 5c7c9e8222d4ff5af0de8bb75bfaf9562424bc57 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 11 Dec 2019 23:16:33 +0100
+Subject: [PATCH] Fix typo
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ hello_world.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index b950271..c4c5d3e 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -3,7 +3,7 @@
+ usage()
+ {
+ 	echo "Usage: ${0} [OPTIONS] [ARGUMENTS]"
+-	echo "   -h  Uage information"
++	echo "   -h  Usage information"
+ }
+ 
+ init()
+-- 
+2.20.1
+

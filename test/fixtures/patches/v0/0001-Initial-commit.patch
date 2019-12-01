@@ -1,0 +1,16 @@
+From d16d3a89132fbc4a40c4dcf6d238411e3fbba791 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Mon, 9 Apr 2018 10:04:08 +0200
+Subject: [PATCH 1/5] Initial commit
+
+---
+ .gitignore | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..e69de29
+-- 
+2.20.1
+

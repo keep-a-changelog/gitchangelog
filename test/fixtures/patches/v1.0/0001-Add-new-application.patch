@@ -1,0 +1,51 @@
+From 1d0e500f317a2c114649e20cc5ea0baaaa36aff4 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 20 Nov 2019 22:20:52 +0100
+Subject: [PATCH] Add new application
+
+To make the world a happier place
+---
+ hello_world.sh | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+ create mode 100755 hello_world.sh
+
+diff --git a/hello_world.sh b/hello_world.sh
+new file mode 100755
+index 0000000..a8c36cc
+--- /dev/null
++++ b/hello_world.sh
+@@ -0,0 +1,31 @@
++#!/bin/sh
++
++usage()
++{
++	echo "Usage: ${0} [OPTIONS] [ARGUMENTS]"
++	echo "   -h  Uage information"
++}
++
++main()
++{
++	while getopts ":h" _options; do
++		case "${_options}" in
++		h)
++			usage
++			exit 0
++			;;
++		:)
++			echo "Option -${OPTARG} requires an argument"
++			exit 1
++			;;
++		?)
++			echo "Invalid option: -${OPTARG}"
++			exit 1
++			;;
++		esac
++	done
++}
++
++main "${@}"
++
++exit 0
+-- 
+2.20.1
+

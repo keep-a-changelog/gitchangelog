@@ -1,0 +1,26 @@
+From b5e6e2229a6d278ec075a0248cc3799dabf49b89 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Thu, 12 Dec 2019 07:17:39 +0100
+Subject: [PATCH] User super-user, not root
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ hello_world.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index c4c5d3e..f85b9c1 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -51,7 +51,7 @@ main()
+ 	fi
+ 
+ 	if [ "$(id -u)" -eq 0 ]; then
+-		echo "Do not run as root"
++		echo "Do not run as super-user."
+ 		exit 1
+ 	fi
+ 
+-- 
+2.20.1
+

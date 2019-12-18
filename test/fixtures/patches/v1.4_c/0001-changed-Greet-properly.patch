@@ -1,0 +1,25 @@
+From d60ae72e508de38299d3c9a875c8ec6184680dc9 Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 11 Dec 2019 20:37:16 +0100
+Subject: [PATCH] changed: Greet properly
+
+---
+ hello_world.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hello_world.sh b/hello_world.sh
+index 8bc9fa0..b950271 100755
+--- a/hello_world.sh
++++ b/hello_world.sh
+@@ -13,7 +13,7 @@ init()
+ 
+ cleanup()
+ {
+-	echo "Good bye."
++	echo "Good bye, cruel world."
+ 
+ 	trap EXIT
+ }
+-- 
+2.20.1
+

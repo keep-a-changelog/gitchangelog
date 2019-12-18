@@ -1,0 +1,278 @@
+#
+# Copyright (C) 2019 Olliver Schinagl <oliver@schinagl.nl>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+default:
+  tags:
+    - dntd
+    - docker
+
+stages:
+  - lint
+  - branch
+  - build
+  - test
+  - package
+  - deploy
+  - complete
+
+# Common parameters
+# ===========================================================================
+.changes_docker: &changes_docker
+  changes:
+    - ".dockerignore"
+    - "Dockerfile"
+    - "bin/*.sh"
+    - "dockerfiles/**/*"
+
+
+## Shared jobs
+# ===========================================================================
+.docker:
+  only:
+    <<: *changes_docker
+    refs:
+      - branches
+      - merge_requests
+      - tags
+  image: registry.hub.docker.com/library/docker:stable
+
+.git:
+  image: registry.hub.docker.com/gitscm/git:latest
+  before_script:
+    - git config --local user.name "${GITLAB_USER_NAME}"
+    - git config --local user.email "${GITLAB_USER_EMAIL}"
+    - git config --local credential.helper "cache --timeout=2147483647"
+    - printf "url=${CI_PROJECT_URL}\nusername=${CI_BOT_USER}\npassword=${CI_PERSONAL_TOKEN}\n\n" | git credential approve
+    - git remote set-url --push origin "https://${CI_BOT_USER}@${CI_REPOSITORY_URL#*@}"
+  after_script:
+    - git credential-cache exit
+  variables:
+    GIT_DEPTH: "0"
+
+
+# Linting
+# ===========================================================================
+.linting:
+  stage: lint
+  only:
+    refs:
+      - branches
+      - merge_requests
+      - tags
+
+shellscript_linting:
+  extends: .linting
+  image: registry.hub.docker.com/koalaman/shellcheck-alpine:stable
+  before_script:
+    - shellcheck --version
+  script:
+    - shellcheck -C -f tty -s sh -x **.sh .githooks/*
+
+dockerfile_linting:
+  extends: .linting
+  image: registry.hub.docker.com/hadolint/hadolint:latest-debian
+  before_script:
+    - hadolint --version
+  script:
+    - hadolint -f tty Dockerfile*
+
+
+# Build
+# ===========================================================================
+build:
+  extends: .docker
+  stage: build
+  except:
+    refs:
+      - /^v\d+\.\d+$/
+  script:
+    - |
+      docker build \
+             --pull \
+             --rm \
+             --tag "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" \
+             .
+    - docker run --rm "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" "/test/buildenv_check.sh"
+
+
+# Testing
+# ===========================================================================
+test:
+  extends: .docker
+  image: "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}"
+  stage: test
+  except:
+    refs:
+      - /^v\d+\.\d+$/
+  variables:
+    SHUNIT_COLOR: "always"
+  script:
+    - "/test/buildenv_check.sh"
+    - "./run_tests.sh"
+
+
+# Packaging
+# ===========================================================================
+package:
+  extends: .docker
+  stage: package
+  except:
+    refs:
+      - /^v\d+\.\d+$/
+  script:
+    - docker rmi "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}"
+    - |
+      docker build \
+             --pull \
+             --rm \
+             --tag "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" \
+             --file "Dockerfile.app" \
+             .
+
+
+# Release branch
+# ===========================================================================
+create_release_branch:
+  extends: .git
+  stage: branch
+  only:
+    refs:
+      - /^v\d+\.\d+$/
+  except:
+    refs:
+      - branches # Workaround for gitlab-org/gitlab#27863
+      - merge_requests
+  script:
+    - CI_COMMIT_TAG_MESSAGE="$(git tag --format="%(contents:subject)%0a%0a%(contents:body)" --list ${CI_COMMIT_TAG:?})" # Workaround for gitlab-org/gitlab#27615
+    - |
+      if [ -z "${CI_COMMIT_TAG_MESSAGE:-}" ]; then
+        CI_COMMIT_TAG_MESSAGE="$(printf "See tag '%s'\n\n(Auto-created release candidate)" "${CI_COMMIT_TAG:?}")"
+      fi
+    - git checkout "${CI_COMMIT_SHA}" -b "release/${CI_COMMIT_TAG:?}"
+    - git tag --annotate --message="${CI_COMMIT_TAG_MESSAGE}" "${CI_COMMIT_TAG}.0-rc1"
+    - git push --follow-tags origin "HEAD"
+
+
+# Deploy containers
+# ===========================================================================
+.deploy:
+  extends: .docker
+  stage: deploy
+  before_script:
+    - docker login --password "${CI_JOB_TOKEN}" --username gitlab-ci-token "${CI_REGISTRY}"
+
+deploy_builds:
+  extends: .deploy
+  only:
+    <<: *changes_docker
+    refs:
+      - /^release/v\d+\.\d+.*$/
+  except:
+    refs:
+      - merge_requests
+      - tags # Workaround for gitlab-org/gitlab#27863
+  script:
+    - docker tag  "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker push "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${CI_COMMIT_SHORT_SHA}"
+
+deploy_release:
+  extends: .deploy
+  only:
+    <<: *changes_docker
+    refs:
+      - /^(.*/)?v\d+(\.\d+){2,}(-rc\d+)?$/
+  except:
+    refs:
+      - branches # Workaround for gitlab-org/gitlab#27863
+      - merge_requests
+  script:
+    - docker_tag="${CI_COMMIT_TAG##*/}"
+    - docker tag  "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${docker_tag:?}"
+    - docker push "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${docker_tag}"
+    - docker tag  "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${docker_tag%.*}"
+    - docker push "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:${docker_tag%.*}"
+    - |
+      latest_major_minor="$(wget -q -O - \
+                                 --header "PRIVATE-TOKEN: ${CI_PERSONAL_TOKEN}" \
+                                 "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/registry/repositories?tags=true"| \
+                    sed \
+                        -e 's|[][]||g' \
+                        -e 's|[[:space:]]||g' \
+                        -e 's|"||g' \
+                        -e 's|}|\n|g' \
+                        -e 's|,{|{|g' | \
+                    sed -n 's|.*location:'"${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}"':v\([[:digit:]]\+\.[[:digit:]]\+\).*|\1|p' | \
+                    sort -n -r -t '.' | \
+                    uniq | \
+                    head -n 1)"
+      latest_major="${latest_major_minor%%.*}"
+      docker_tag_major="${docker_tag%%.*}"
+      if [ "${docker_tag_major#v*}" -lt "${latest_major?}" ]; then
+        return
+      fi
+      latest_minor="${latest_major_minor#*.}"
+      docker_tag_minor_patch="${docker_tag#${docker_tag_major}.}"
+      docker_tag_minor="${docker_tag_minor_patch%.*}"
+      if [ "${docker_tag_major#v*}" -eq "${latest_major?}" ] && \
+         [ "${docker_tag_minor}" -lt "${latest_minor?}" ]; then
+          return
+      fi
+      echo "Pushing ${docker_tag} as latest"
+      docker tag  "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:latest"
+      docker push "${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}:latest"
+
+
+# Complete
+# ===========================================================================
+announce_release:
+  image: registry.hub.docker.com/olliver/curl:latest # Workaround until this is merged upstream
+  stage: complete
+  when: delayed
+  start_in: 86 minutes
+  only:
+    <<: *changes_docker
+    refs:
+      - /^v\d+\.\d+(\.\d+)+$/
+  except:
+    refs:
+      - branches # Workaround for gitlab-org/gitlab#27863
+      - merge_requests
+  before_script:
+    - apk add --no-cache git # Workaround for gitlab-org/gitlab#27615
+  script:
+    - CI_COMMIT_TAG_MESSAGE="$(git tag --format="%(contents:subject)%0a%0a%(contents:body)" --list ${CI_COMMIT_TAG:?})" # Workaround for gitlab-org/gitlab#27615
+    - | # Workaround for gitlab-org/gitlab-ce#59726
+      CI_COMMIT_TAG_MESSAGE="$(echo "${CI_COMMIT_TAG_MESSAGE}" | \
+                               tr -d '\b' | \
+                               tr '\f' '\n' | \
+                               sed \
+                                   -e 's|\\|\\\\|g' \
+                                   -e 's|"|\\"|g' \
+                                   -e 's|/|\\/|g' \
+                                   -e ':a;N;$!ba;s|\n|\\n|g' \
+                                   -e 's|\r|\\r|g' \
+                                   -e 's|\t|\\t|g')"
+    - |
+      curl \
+        --data "{\"tag_name\": \"${CI_COMMIT_TAG}\", \"name\": \"${CI_PROJECT_NAME} ${CI_COMMIT_TAG}\", \"description\": \"${CI_COMMIT_TAG_MESSAGE:-No release notes.}\"}" \
+        --fail \
+        --header "Content-Type: application/json" \
+        --header "Private-Token: ${CI_PERSONAL_TOKEN}" \
+        --output "/dev/null" \
+        --request POST \
+        --show-error \
+        --silent \
+        --write-out "HTTP response: %{http_code}\n\n" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+
+cleanup_docker_containers:
+  extends: .docker
+  stage: complete
+  when: always
+  script:
+    - |
+      if docker inspect --type image "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}" 1> "/dev/null"; then
+        docker rmi "${CI_COMMIT_SHORT_SHA}:${CI_PIPELINE_ID}"
+      fi

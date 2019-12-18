@@ -1,0 +1,41 @@
+From b8e0c583376df59a75f0e9ba978fab703a6ba3dd Mon Sep 17 00:00:00 2001
+From: Olliver Schinagl <oliver@schinagl.nl>
+Date: Wed, 21 Nov 2018 12:47:51 +0100
+Subject: [PATCH 5/5] editorconfig: Add initial .editorconfig
+
+This ensures our codestyle is consistent throughout
+
+Signed-off-by: Olliver Schinagl <oliver@schinagl.nl>
+---
+ .editorconfig | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+ create mode 100644 .editorconfig
+
+diff --git a/.editorconfig b/.editorconfig
+new file mode 100644
+index 0000000..61a6e6f
+--- /dev/null
++++ b/.editorconfig
+@@ -0,0 +1,19 @@
++# EditorConfig is awesome: https://EditorConfig.org
++
++# top-most EditorConfig file
++root = true
++
++[*]
++charset = utf-8
++end_of_line = lf
++indent_size = 8
++indent_style = tab
++insert_final_newline = true
++
++[{*.py,Dockerfile,meson.build}]
++indent_size = 4
++indent_style = space
++
++[*.{yaml,yml}]
++indent_size = 2
++indent_style = space
+-- 
+2.20.1
+

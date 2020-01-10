@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Copyright (C) 2019 Olliver Schinagl <oliver@schinagl.nl>
+#
+# source: https://gitlab.com/keep-a-changelog/gitchangelog/blob/master/.githooks/pre-push
 
 set -eu
 
@@ -11,36 +13,38 @@ empty_commit="0000000000000000000000000000000000000000"
 
 e_err()
 {
-    >&2 echo "ERROR: ${*}"
+	>&2 echo "ERROR: ${*}"
 }
 
 e_warn()
 {
-    echo "WARN: ${*}"
+	echo "WARN: ${*}"
 }
 
 main()
 {
-    while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
-        if [ "${local_sha}" = "${empty_commit}" ] && tag_name="$(git describe  --exact-match --match "${TAG_PREFIX}[0-9]*" "${remote_sha}")"; then
-            e_err "Remote tag '${remote_ref}' not known locally (try git fetch) or trying to delete remote release tag '${tag_name}'."
-            exit 1
-        fi
+	while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
+		if [ "${local_sha}" = "${empty_commit}" ] && \
+		   tag_name="$(git describe  --exact-match --match "${TAG_PREFIX}[0-9]*" "${remote_sha}")"; then
+			e_err "Remote tag '${remote_ref}' not known locally (try git fetch) or trying to delete remote release tag '${tag_name}'."
+			exit 1
+		fi
 
-        # Only run if we are pushing a new release tag. (v0.10.0-rc0 for example)
-        git_tag_commit="$(git rev-list -n 1 "${local_sha}")"
-        if [ "${remote_sha}" != "${empty_commit}" ] || \
-           [ "${git_tag_commit}" = "${local_sha}" ] || \
-           ! git describe --exact-match --match "${TAG_PREFIX}[0-9]*" "${local_sha}" 2> "/dev/null"; then
-            continue
-        fi
+		# Only run if we are pushing a new release tag. (v0.10.0-rc0 for example)
+		git_tag_commit="$(git rev-list -n 1 "${local_sha}")"
+		if [ "${remote_sha}" != "${empty_commit}" ] || \
+		   [ "${git_tag_commit}" = "${local_sha}" ] || \
+		   ! git describe --exact-match --match "${TAG_PREFIX}[0-9]*" "${local_sha}" 2> "/dev/null"; then
+			continue
+		fi
 
-        if ! git show --name-only --pretty=format:"" "${local_sha}^{commit}" | grep -q "CHANGELOG.md"; then
-            echo "Tag '${local_ref}' does not point to a changelog commit."
-            echo "Run the 'git_tag_release.sh' script on the relevant branch."
-            exit 1
-        fi
-    done
+		if ! git show --name-only --pretty=format:"" "${local_sha}^{commit}" | \
+		     grep -q "CHANGELOG.md"; then
+			echo "Tag '${local_ref}' does not point to a changelog commit."
+			echo "Run the 'git_tag_release.sh' script on the relevant branch."
+			exit 1
+		fi
+	done
 }
 
 main "${*}"
